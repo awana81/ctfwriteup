@@ -10,6 +10,7 @@ Strings are not null terminated in the rust binary, instead stored as a count an
 We created structures in IDA Pro to be able to follow buffers and strings in the rust program, as we were not terribly famililar with the rust API that would be represented by the compiled code. We also looked at the places where recv was called to see how our data was processed. One of the location added to a buffer and was located close the same function that appeared to parse and use the data before accessing the flag process. Tracing functions and the use of the recv'ed buffer showed two helpful points:
 1. The data was immediately passed into a CRC32 function that checked the data against the last four bytes of the message
 2. One built a message for output that did a lot of bit twiddling. We decided to use this information to attempt to parse the messages received from the service.
+![Bit Manipulation](/bit_twiddling.png)
 
 The data received was processed and compared to various task ids to determine if it was flag task, TLM taks, housekeeping task, etc. We did not get as far as determining the IDs, theorizing that they were pulled from the config file.
 
@@ -22,6 +23,7 @@ We wrote a script to connect to the service and attempt to parse the received da
 We then attempted to determine the task id we needed to send for a flag task. We started by sending a payload of several `\x01` values and using all possible values for the task ID to see if we could get a response, but nothing different was received. After several hours of trying to determine what was wrong (we never bothered actually running the service locally due to needing to determine the config.toml format), we realized a typo in the script was stripping off our header and thus all the CRC32 values were wrong resulting in our message being thrown out. We fixed the issue.... and still had the same problem. After staring at the code for another hour we realized that our length value was wrong as we had included the CRC32 in it and it should not be included. 
 
 Throwing our script again resulted in the type `\x64` returning the string `NOT AUTHORIZED`. We remembered seeing this in the binary, and determined that sending a payload with a value of '\x02' would request the flag instead of trying to start/stop the flag service. Updating the script to send this resulted in `FLAG SERVICE NOT AVAILABLE` so we figured we were on the correct path.
+![Retrieve Flage](/flag_task.png)
 
 Running a couple of times showed that `FLAG APP FINE` message always occurred after the 5th time the `\x6a` message was received (sequence number 4). We figured we would try to send the `Retrieve Flag` request at that point, and send a lot of them to try to win a potential race. To our great surprise, this worked the first time! One of the responses received after all of the requests contained the flag, indicating that we successfully sent the request while the service was polling the flag service, winning the race.
 
